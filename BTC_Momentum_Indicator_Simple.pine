@@ -1,0 +1,71 @@
+//@version=5
+indicator("Bitcoin Cycle Rainbow Indicator", shorttitle="BTC Rainbow Cycle", overlay=true)
+
+// Parameters
+int period = 90 // 90 days
+
+// Calculate ROC over the period
+float roc = ta.roc(close, period)
+
+// Variables to persist the last valid y_drop and y_rise
+var float last_y_drop = 80.0 // Default reasonable drop % (e.g., 80% typical bear market drop)
+var float last_y_rise = 1000.0 // Default reasonable rise % (e.g., 1000% rise)
+
+// Update predictions only when conditions are met and values are reasonable
+if not na(roc) and bar_index > period
+    if roc > 0
+        float temp_y_drop = 3.928 * math.log(roc) + 61.085
+        if temp_y_drop > 0 and temp_y_drop < 200
+            last_y_drop := temp_y_drop
+    else if roc < 0
+        float x_drop = -roc
+        if x_drop > 0.01 // Avoid log of very small numbers
+            float temp_y_rise = 2112 * math.log(x_drop) - 6250
+            if temp_y_rise > 0
+                last_y_rise := temp_y_rise
+
+// Calculate predicted levels
+float predicted_bottom = close * (1 - last_y_drop / 100)
+float predicted_top = close * (1 + last_y_rise / 100)
+
+// Ensure predicted_bottom < close < predicted_top (clamp if necessary)
+predicted_bottom := math.min(predicted_bottom, close * 0.2) // Avoid unrealistic negatives or zeros
+predicted_top := math.max(predicted_top, close * 2)
+
+// Define multiple band levels from bottom to top (8 bands, 9 levels)
+int num_bands = 8
+float total_range = predicted_top - predicted_bottom
+float band_step = total_range / num_bands
+
+float level0 = predicted_bottom // Lowest level
+float level1 = level0 + band_step
+float level2 = level1 + band_step
+float level3 = level2 + band_step
+float level4 = level3 + band_step
+float level5 = level4 + band_step
+float level6 = level5 + band_step
+float level7 = level6 + band_step
+float level8 = predicted_top // Highest level
+
+// Plot the levels invisibly
+p0 = plot(level0, color=na)
+p1 = plot(level1, color=na)
+p2 = plot(level2, color=na)
+p3 = plot(level3, color=na)
+p4 = plot(level4, color=na)
+p5 = plot(level5, color=na)
+p6 = plot(level6, color=na)
+p7 = plot(level7, color=na)
+p8 = plot(level8, color=na)
+
+// Fill the bands with rainbow colors (inspired by Bitcoin Rainbow Chart)
+// From low (oversold, cool colors) to high (overbought, warm colors)
+// Transparency set to 80 for visual appeal
+fill(p0, p1, color=color.new(#00008B, 80), title="Band 1 - Fire Sale (Dark Blue)") // Dark Blue
+fill(p1, p2, color=color.new(#0000FF, 80), title="Band 2 - Buy (Blue)") // Blue
+fill(p2, p3, color=color.new(#ADD8E6, 80), title="Band 3 - Accumulate (Light Blue)") // Light Blue
+fill(p3, p4, color=color.new(#008000, 80), title="Band 4 - Still Cheap (Green)") // Green
+fill(p4, p5, color=color.new(#FFFF00, 80), title="Band 5 - HODL (Yellow)") // Yellow
+fill(p5, p6, color=color.new(#FFA500, 80), title="Band 6 - Bubble? (Orange)") // Orange
+fill(p6, p7, color=color.new(#FF0000, 80), title="Band 7 - Sell (Red)") // Red
+fill(p7, p8, color=color.new(#8B0000, 80), title="Band 8 - Max Bubble (Dark Red)") // Dark Red
