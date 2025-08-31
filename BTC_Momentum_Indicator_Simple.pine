@@ -28,23 +28,27 @@ if not na(roc) and bar_index > period
 float predicted_bottom = close * (1 - last_y_drop / 100)
 float predicted_top = close * (1 + last_y_rise / 100)
 
-// Ensure predicted_bottom < close < predicted_top (clamp if necessary)
-predicted_bottom := math.min(predicted_bottom, close * 0.2) // Avoid unrealistic negatives or zeros
-predicted_top := math.max(predicted_top, close * 2)
+// Clamp predicted_bottom to a small positive value to avoid log issues and unrealistic negatives
+predicted_bottom := math.max(predicted_bottom, close * 0.01)
+// Ensure predicted_top is greater than predicted_bottom
+predicted_top := math.max(predicted_top, predicted_bottom * 1.1)
 
-// Define multiple band levels from bottom to top (8 bands, 9 levels)
+// Use logarithmic spacing for bands to adapt better to log scale charts
+float log_bottom = math.log(predicted_bottom)
+float log_top = math.log(predicted_top)
+float log_range = log_top - log_bottom
 int num_bands = 8
-float total_range = predicted_top - predicted_bottom
-float band_step = total_range / num_bands
+float log_step = log_range / num_bands
 
+// Define levels using exponential steps
 float level0 = predicted_bottom // Lowest level
-float level1 = level0 + band_step
-float level2 = level1 + band_step
-float level3 = level2 + band_step
-float level4 = level3 + band_step
-float level5 = level4 + band_step
-float level6 = level5 + band_step
-float level7 = level6 + band_step
+float level1 = math.exp(log_bottom + log_step)
+float level2 = math.exp(log_bottom + 2 * log_step)
+float level3 = math.exp(log_bottom + 3 * log_step)
+float level4 = math.exp(log_bottom + 4 * log_step)
+float level5 = math.exp(log_bottom + 5 * log_step)
+float level6 = math.exp(log_bottom + 6 * log_step)
+float level7 = math.exp(log_bottom + 7 * log_step)
 float level8 = predicted_top // Highest level
 
 // Plot the levels invisibly
